@@ -24,10 +24,9 @@ final class CircularDependencyRule implements Rule
     private bool $alreadyReported = false;
 
     public function __construct(
-        string $vendor,
         string $baseDir,
     ) {
-        $this->resolver = ModuleDependencyResolver::getInstance($vendor, $baseDir);
+        $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
 
     public function getNodeType(): string
@@ -40,10 +39,6 @@ final class CircularDependencyRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
-        if (! $node instanceof CollectedDataNode) {
-            return [];
-        }
-
         // Only report once
         if ($this->alreadyReported) {
             return [];

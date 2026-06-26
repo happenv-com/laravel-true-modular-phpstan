@@ -7,7 +7,6 @@ namespace Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer;
 use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Use_;
-use PhpParser\Node\Stmt\UseUse;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleError;
@@ -23,10 +22,9 @@ final readonly class ModuleBoundaryRule implements Rule
     private ModuleDependencyResolver $resolver;
 
     public function __construct(
-        string $vendor,
         string $baseDir,
     ) {
-        $this->resolver = ModuleDependencyResolver::getInstance($vendor, $baseDir);
+        $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
 
     public function getNodeType(): string
@@ -39,10 +37,6 @@ final readonly class ModuleBoundaryRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
-        if (! $node instanceof Use_) {
-            return [];
-        }
-
         // Only check regular use statements (not function or const)
         if ($node->type !== Use_::TYPE_NORMAL) {
             return [];
@@ -58,10 +52,6 @@ final readonly class ModuleBoundaryRule implements Rule
         }
 
         foreach ($node->uses as $use) {
-            if (! $use instanceof UseUse) {
-                continue;
-            }
-
             $usedClass = $this->getFullyQualifiedName($use->name);
             $targetModule = $this->resolver->getModuleForClass($usedClass);
 

@@ -1,16 +1,16 @@
 # laravel-true-modular-phpstan
 
 PHPStan extensions for [laravel-true-modular](https://github.com/happenv-com/laravel-true-modular)
-modular monoliths. Ships two independent extensions:
+modular monoliths. Ships two independent, **zero-config** extensions:
 
 | Extension | What it does |
 | --- | --- |
 | **Dynamic Relation Resolver** | Teaches PHPStan about Eloquent relations registered at runtime via `Model::resolveRelationUsing()` (e.g. relations one module adds to another module's model). Such relations are normally invisible to static analysis — this extension makes `$model->relation` and `$model->relation()` fully typed. |
 | **Module Boundary Enforcer** | Fails analysis when a module references a class from another module that is **not** declared in its `composer.json` `require`. Also detects circular dependencies between modules. |
 
-Requires PHP 8.4+, PHPStan 2.x and Laravel 12/13. Designed for the
-`app-modules/<name>` and `vendor/<vendor>/<name>` module layout used by
-`laravel-true-modular`.
+Requires PHP 8.4+, PHPStan 2.x and `laravel-true-modular` (Laravel 12/13). It reuses
+the framework's own module discovery, so it understands your modules out of the box —
+no PHPStan parameters to set.
 
 ## Installation
 
@@ -59,12 +59,32 @@ includes:
 > models, so install [`larastan/larastan`](https://github.com/larastan/larastan)
 > for accurate results. With `extension-installer` it is wired up automatically.
 
-## Configuration
+## Zero configuration
+
+Neither extension needs any `parameters` in `phpstan.neon`. The Module Boundary
+Enforcer discovers modules through `laravel-true-modular`'s own `ModuleRegistry`,
+which means it automatically honours:
+
+- the configured module composer type (`Application::moduleComposerType()`, default
+  `true-module`), and
+- the configured modules directory (`Application::modulesDirectory()`, default
+  `app-modules`).
+
+A "module" is any package under that directory whose `composer.json` declares the
+module type. Allowed cross-module dependencies are read straight from each module's
+`composer.json` `require` section — exactly the same source of truth the framework
+uses to order service providers at runtime. There is no vendor prefix or path to
+configure.
+
+> If no modules are found (e.g. the directory does not exist), both rules silently
+> do nothing, so installing the package never breaks an unrelated build.
+
+## What it reports
 
 ### Dynamic Relation Resolver
 
-Zero configuration. Once installed it automatically types any relation registered
-through Laravel's relation resolver, for example:
+Once installed it automatically types any relation registered through Laravel's
+relation resolver, for example:
 
 ```php
 // In some module's service provider initialize()/boot():
@@ -81,36 +101,10 @@ To-one relations (`hasOne`, `belongsTo`, `morphOne`, `hasOneThrough`) are typed 
 
 ### Module Boundary Enforcer
 
-This extension **must** know your module vendor prefix. Set it under
-`parameters.moduleBoundary` in `phpstan.neon`:
-
-```neon
-parameters:
-    moduleBoundary:
-        # Vendor segment of your module package names: acme/crm, acme/sales, ...
-        vendor: 'acme'
-
-        # Project root used to locate composer.json files (default shown).
-        baseDir: %currentWorkingDirectory%
-
-        # Master switch for the boundary check.
-        enabled: true
-
-        # Report circular dependencies between modules.
-        detectCircularDependencies: true
-```
-
-> If `vendor` is left empty (the default), the boundary check matches no modules
-> and is effectively a no-op — so installing the package never breaks an existing
-> build until you opt in by setting `vendor`.
-
-#### How it works
-
-For every module under `app-modules/<name>` or `vendor/<vendor>/<name>`, the
-enforcer reads that module's `composer.json` and treats its `require` entries
-beginning with `<vendor>/` as the **allowed** cross-module dependencies. A module
-may always reference its own classes and classes from vendor packages outside your
-module vendor prefix.
+For every module the enforcer reads its `composer.json` and treats its `require`
+entries that resolve to **other known modules** as the allowed cross-module
+dependencies. A module may always reference its own classes and any class from a
+package that is not a module (vendor libraries, the host application, …).
 
 Violations look like:
 
@@ -145,9 +139,6 @@ parameters:
           path: app-modules/legacy/*
 ```
 
-To turn a check off entirely, set `moduleBoundary.enabled: false` and/or
-`moduleBoundary.detectCircularDependencies: false`.
-
 ## Example `phpstan.neon`
 
 ```neon
@@ -159,9 +150,26 @@ parameters:
     level: 6
     paths:
         - app-modules
-    moduleBoundary:
-        vendor: 'acme'
 ```
+
+That's the whole configuration — point PHPStan at your modules and run it.
+
+## Development
+
+```bash
+composer install
+vendor/bin/pest        # test suite (Pest 4)
+vendor/bin/pint        # code style
+```
+
+The test suite covers both extensions:
+
+- **Dynamic relations** — boots an in-memory Eloquent connection, registers
+  relations via `Model::resolveRelationUsing()`, and asserts the resolver exposes
+  them with the correct method/property types.
+- **Module boundary** — uses PHPStan's `RuleTestCase` against fixture modules under
+  `tests/Fixtures` to assert allowed/disallowed cross-module references and circular
+  dependency detection.
 
 ## License
 

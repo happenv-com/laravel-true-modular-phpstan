@@ -32,10 +32,9 @@ final class ModuleBoundaryClassReferenceRule implements Rule
     private array $reportedViolations = [];
 
     public function __construct(
-        string $vendor,
         string $baseDir,
     ) {
-        $this->resolver = ModuleDependencyResolver::getInstance($vendor, $baseDir);
+        $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
 
     public function getNodeType(): string

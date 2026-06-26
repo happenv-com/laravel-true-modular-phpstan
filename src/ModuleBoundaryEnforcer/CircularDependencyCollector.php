@@ -17,20 +17,15 @@ use PHPStan\Node\FileNode;
  */
 final readonly class CircularDependencyCollector implements Collector
 {
-    public function __construct(
-        private string $vendor,
-        private string $baseDir,
-    ) {}
-
     public function getNodeType(): string
     {
         return FileNode::class;
     }
 
     /**
-     * @return array{file: string}|null
+     * @return array{file: string}
      */
-    public function processNode(Node $node, Scope $scope): ?array
+    public function processNode(Node $node, Scope $scope): array
     {
         // Just return the file path - the rule will process all collected data
         return ['file' => $scope->getFile()];

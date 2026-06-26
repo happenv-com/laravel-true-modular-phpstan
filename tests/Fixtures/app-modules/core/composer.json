@@ -1,0 +1,5 @@
+{
+    "name": "acme/core",
+    "type": "true-module",
+    "autoload": { "psr-4": { "Acme\\Core\\": "src/" } }
+}

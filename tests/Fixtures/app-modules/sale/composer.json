@@ -1,0 +1,6 @@
+{
+    "name": "acme/sale",
+    "type": "true-module",
+    "require": { "acme/core": "*" },
+    "autoload": { "psr-4": { "Acme\\Sale\\": "src/" } }
+}

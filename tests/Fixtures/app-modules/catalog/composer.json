@@ -1,0 +1,5 @@
+{
+    "name": "acme/catalog",
+    "type": "true-module",
+    "autoload": { "psr-4": { "Acme\\Catalog\\": "src/" } }
+}
