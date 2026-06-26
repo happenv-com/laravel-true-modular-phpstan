@@ -1,0 +1,54 @@
+parameters:
+    moduleBoundary:
+        # Vendor prefix for modules (e.g., 'acme'). Must be set to match the
+        # vendor segment of your modules' package names (acme/crm, acme/sales, ...).
+        vendor: ''
+        # Base directory of the project (usually %currentWorkingDirectory%)
+        baseDir: %currentWorkingDirectory%
+        # Enable/disable the module boundary check
+        enabled: true
+        # Enable/disable circular dependency detection
+        detectCircularDependencies: true
+
+parametersSchema:
+    moduleBoundary: structure([
+        vendor: string()
+        baseDir: string()
+        enabled: bool()
+        detectCircularDependencies: bool()
+    ])
+
+conditionalTags:
+    Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryRule:
+        phpstan.rules.rule: %moduleBoundary.enabled%
+    Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryClassReferenceRule:
+        phpstan.rules.rule: %moduleBoundary.enabled%
+    Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyCollector:
+        phpstan.collector: %moduleBoundary.detectCircularDependencies%
+    Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyRule:
+        phpstan.rules.rule: %moduleBoundary.detectCircularDependencies%
+
+services:
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryRule
+        arguments:
+            vendor: %moduleBoundary.vendor%
+            baseDir: %moduleBoundary.baseDir%
+
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryClassReferenceRule
+        arguments:
+            vendor: %moduleBoundary.vendor%
+            baseDir: %moduleBoundary.baseDir%
+
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyCollector
+        arguments:
+            vendor: %moduleBoundary.vendor%
+            baseDir: %moduleBoundary.baseDir%
+
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyRule
+        arguments:
+            vendor: %moduleBoundary.vendor%
+            baseDir: %moduleBoundary.baseDir%

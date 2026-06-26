@@ -1,0 +1,56 @@
+{
+    "name": "happenv-com/laravel-true-modular-phpstan",
+    "description": "PHPStan extensions for laravel-true-modular: dynamic Eloquent relation resolution and module boundary enforcement.",
+    "license": "MIT",
+    "type": "phpstan-extension",
+    "keywords": [
+        "phpstan",
+        "phpstan-extension",
+        "laravel",
+        "modular-monolith",
+        "static-analysis"
+    ],
+    "authors": [
+        {
+            "name": "webard",
+            "email": "code@webard.me"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "illuminate/database": "^12.0 || ^13.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.48",
+        "larastan/larastan": "^3.10",
+        "laravel/framework": "^12.0 || ^13.0",
+        "laravel/pint": "^1.29",
+        "orchestra/testbench": "^11.1",
+        "phpstan/extension-installer": "^1.4"
+    },
+    "suggest": {
+        "larastan/larastan": "Recommended for the dynamic relation resolver to reflect Eloquent models correctly.",
+        "phpstan/extension-installer": "Auto-registers this extension's PHPStan config (no manual includes needed)."
+    },
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "Happenv\\LaravelTrueModular\\Phpstan\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
+        }
+    },
+    "$schema": "https://getcomposer.org/schema.json"
+}

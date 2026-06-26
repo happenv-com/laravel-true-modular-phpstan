@@ -1,0 +1,10 @@
+services:
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\DynamicRelationResolver\DynamicRelationMethodsClassReflectionExtension
+        tags:
+            - phpstan.broker.methodsClassReflectionExtension
+
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\DynamicRelationResolver\DynamicRelationPropertiesClassReflectionExtension
+        tags:
+            - phpstan.broker.propertiesClassReflectionExtension
