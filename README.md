@@ -8,7 +8,7 @@ modular monoliths. Ships two independent, **zero-config** extensions:
 | **Dynamic Relation Resolver** | Teaches PHPStan about Eloquent relations registered at runtime via `Model::resolveRelationUsing()` (e.g. relations one module adds to another module's model). Such relations are normally invisible to static analysis — this extension makes `$model->relation` and `$model->relation()` fully typed. |
 | **Module Boundary Enforcer** | Fails analysis when a module references a class from another module that is **not** declared in its `composer.json` `require`. Also detects circular dependencies between modules. |
 
-Requires PHP 8.4+, PHPStan 2.x and `laravel-true-modular` (Laravel 12/13). It reuses
+Requires PHP 8.3+, PHPStan 2.x and `laravel-true-modular` (Laravel 12/13). It reuses
 the framework's own module discovery, so it understands your modules out of the box —
 no PHPStan parameters to set.
 
