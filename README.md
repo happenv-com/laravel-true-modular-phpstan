@@ -173,4 +173,4 @@ The test suite covers both extensions:
 
 ## License
 
-MIT
+[MIT](LICENSE.md)
