@@ -180,6 +180,6 @@ final class ModuleDependencyResolver
         }
 
         $this->registry = $registry;
-        $this->locator = new AppModulesLocator($registry);
+        $this->locator = new AppModulesLocator($registry, Application::getModulesVendor());
     }
 }
