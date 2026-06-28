@@ -18,7 +18,7 @@
     ],
     "require": {
         "php": "^8.3",
-        "happenv-com/laravel-true-modular": "^0.3.4",
+        "happenv-com/laravel-true-modular": "^1.0",
         "illuminate/database": "^12.0 || ^13.0",
         "phpstan/phpstan": "^2.0"
     },
