@@ -52,6 +52,24 @@ final class FixturePaths
         return self::real(__DIR__.'/../Fixtures/circular/app-modules/'.$relative);
     }
 
+    /**
+     * Base dir whose `app-modules/` holds a pair whose cycle is closed by a
+     * `require-dev` edge: acme/a dev-requires acme/b, acme/b requires acme/a.
+     * The shipped graph alone is acyclic, which is the whole point of the pair.
+     */
+    public static function devCircularBaseDir(): string
+    {
+        return self::real(__DIR__.'/../Fixtures/devcircular');
+    }
+
+    /**
+     * Absolute path to any file inside the dev-circular fixture set.
+     */
+    public static function devCircularFile(string $relative): string
+    {
+        return self::real(__DIR__.'/../Fixtures/devcircular/app-modules/'.$relative);
+    }
+
     private static function real(string $path): string
     {
         $real = realpath($path);
