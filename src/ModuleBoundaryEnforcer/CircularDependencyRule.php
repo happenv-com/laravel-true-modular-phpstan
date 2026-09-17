@@ -25,6 +25,7 @@ final class CircularDependencyRule implements Rule
 
     public function __construct(
         string $baseDir,
+        private readonly bool $includeDevDependencies = false,
     ) {
         $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
@@ -53,7 +54,7 @@ final class CircularDependencyRule implements Rule
 
         $this->alreadyReported = true;
 
-        $cycles = $this->resolver->detectCircularDependencies();
+        $cycles = $this->resolver->detectCircularDependencies($this->includeDevDependencies);
         if ($cycles === []) {
             return [];
         }
@@ -64,10 +65,16 @@ final class CircularDependencyRule implements Rule
             $cyclePath = implode(' → ', $cycle);
             $errors[] = RuleErrorBuilder::message(sprintf(
                 'Circular dependency detected between modules: %s. '.
-                'This creates a tight coupling between modules and should be resolved by introducing an abstraction or rethinking the module boundaries.',
+                'This creates a tight coupling between modules and should be resolved by introducing an abstraction or rethinking the module boundaries.%s',
                 $cyclePath,
+                $this->includeDevDependencies
+                    ? ' A `require-dev` edge can be what closes it, in which case the import that'
+                        .' creates it is reported on its own line by CircularDependencyImportRule.'
+                    : '',
             ))
-                ->identifier('trueModular.circularDependency')
+                ->identifier($this->includeDevDependencies
+                    ? 'trueModular.circularDependencyIncludingDev'
+                    : 'trueModular.circularDependency')
                 ->build();
         }
 
