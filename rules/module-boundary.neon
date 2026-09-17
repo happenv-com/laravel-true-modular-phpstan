@@ -1,3 +1,26 @@
+# Boundary rules, plus the graph-level cycle report.
+#
+# `includeDev` defaults to OFF, and that is not timidity: the shipped graph is what
+# orders service providers, so it is normally acyclic and `false` is the honest answer
+# for a consumer who has not opted in. Turning it on in a repository that has lived
+# with test-only cycles will light up findings that were always there — which is the
+# point, but it should be a decision, not something an upgrade does to you.
+#
+# The companion rule that names the IMPORT behind such a cycle lives in
+# `rules/module-cycle-imports.neon` and is deliberately not included here: it only
+# sees anything in a configuration that analyses the modules' tests.
+parameters:
+    trueModular:
+        circularDependencies:
+            includeDev: false
+
+parametersSchema:
+    trueModular: structure([
+        circularDependencies: structure([
+            includeDev: bool()
+        ])
+    ])
+
 services:
     -
         class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryRule
@@ -22,5 +45,6 @@ services:
         class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyRule
         arguments:
             baseDir: %currentWorkingDirectory%
+            includeDevDependencies: %trueModular.circularDependencies.includeDev%
         tags:
             - phpstan.rules.rule

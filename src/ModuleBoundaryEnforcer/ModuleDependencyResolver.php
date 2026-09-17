@@ -36,6 +36,12 @@ final class ModuleDependencyResolver
     /** @var array<string, string|null> Memoized file path => module name */
     private array $fileModuleCache = [];
 
+    /** @var array<string, array<string, true>> Memoized module name => everything reachable from it */
+    private array $reachableCache = [];
+
+    /** @var array<string, array<string>>|null Memoized graph including `require-dev` */
+    private ?array $fullGraph = null;
+
     public function __construct(
         private readonly string $baseDir,
     ) {}
@@ -135,11 +141,11 @@ final class ModuleDependencyResolver
     }
 
     /**
-     * Detect circular dependencies between modules.
+     * Dependencies a module declares for its tests only (`require-dev`).
      *
-     * @return array<array<string>> Each entry is a cycle path (closing module repeated at the end).
+     * @return array<string>
      */
-    public function detectCircularDependencies(): array
+    public function getDevDependencies(string $moduleName): array
     {
         $this->initialize();
 
@@ -148,7 +154,110 @@ final class ModuleDependencyResolver
         }
 
         try {
-            return $this->registry->detectCircularDependencies();
+            return $this->registry->getDevDependencies($moduleName);
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Whether $targetModule is reachable from $sourceModule ONLY through `require-dev`.
+     *
+     * The distinction is what makes a finding actionable: a `require` edge is the
+     * shipped code's, so no test author can remove it, and a cycle running through one
+     * is a boundary problem rather than a test-placement problem.
+     */
+    public function isDevOnlyDependency(string $sourceModule, string $targetModule): bool
+    {
+        return in_array($targetModule, $this->getDevDependencies($sourceModule), strict: true)
+            && ! in_array($targetModule, $this->getDependencies($sourceModule), strict: true);
+    }
+
+    /**
+     * Whether an edge $sourceModule → $targetModule lies on a cycle — that is, whether
+     * $sourceModule is reachable again from $targetModule once dev edges are walked.
+     */
+    public function edgeClosesCycle(string $sourceModule, string $targetModule): bool
+    {
+        return isset($this->reachableFrom($targetModule)[$sourceModule]);
+    }
+
+    /**
+     * Everything reachable from a module through `require` and `require-dev` alike.
+     *
+     * Iterative on purpose: this graph is the one that HAS cycles, so a recursive walk
+     * would not terminate.
+     *
+     * @return array<string, true>
+     */
+    private function reachableFrom(string $moduleName): array
+    {
+        if (isset($this->reachableCache[$moduleName])) {
+            return $this->reachableCache[$moduleName];
+        }
+
+        $graph = $this->fullDependencyGraph();
+        $seen = [];
+        $queue = $graph[$moduleName] ?? [];
+
+        while ($queue !== []) {
+            $next = array_pop($queue);
+
+            if (isset($seen[$next])) {
+                continue;
+            }
+
+            $seen[$next] = true;
+
+            foreach ($graph[$next] ?? [] as $further) {
+                if (! isset($seen[$further])) {
+                    $queue[] = $further;
+                }
+            }
+        }
+
+        return $this->reachableCache[$moduleName] = $seen;
+    }
+
+    /** @return array<string, array<string>> */
+    private function fullDependencyGraph(): array
+    {
+        if ($this->fullGraph !== null) {
+            return $this->fullGraph;
+        }
+
+        $this->initialize();
+
+        if ($this->registry === null) {
+            return $this->fullGraph = [];
+        }
+
+        try {
+            return $this->fullGraph = $this->registry->getFullDependencyGraph();
+        } catch (Throwable) {
+            return $this->fullGraph = [];
+        }
+    }
+
+    /**
+     * Detect circular dependencies between modules.
+     *
+     * @param  bool  $includeDev  also walk `require-dev` edges. The shipped graph is
+     *                            what orders service providers and is normally acyclic;
+     *                            cycles usually live in the test-only edges, and a
+     *                            consumer has to ask for those explicitly.
+     * @return array<array<string>> Each entry is a cycle path (closing module repeated at the end).
+     */
+    public function detectCircularDependencies(bool $includeDev = false): array
+    {
+        $this->initialize();
+
+        if ($this->registry === null) {
+            return [];
+        }
+
+        try {
+            return $this->registry->detectCircularDependencies($includeDev);
         } catch (Throwable) {
             return [];
         }

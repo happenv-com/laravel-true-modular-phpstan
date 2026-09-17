@@ -1,0 +1,6 @@
+{
+    "name": "acme/a",
+    "type": "true-module",
+    "require-dev": { "acme/b": "*" },
+    "autoload": { "psr-4": { "Acme\\A\\": "src/" } }
+}

@@ -1,0 +1,23 @@
+# Names the IMPORT that puts a module inside a dependency cycle.
+#
+# Opt in by including this file — there is no flag, because including it IS the flag.
+# It is kept out of `extension.neon` on purpose: a `require-dev` edge exists because a
+# TEST reaches another module, so this rule only sees anything in a configuration that
+# analyses the modules' test directories. A main run that excludes them (a reasonable
+# thing for a main run to do) would register the rule and report nothing — a gate that
+# looks armed and is not, which is the worst kind.
+#
+# Include it alongside `extension.neon` in the configuration that covers tests:
+#
+#     includes:
+#         - vendor/happenv-com/laravel-true-modular-phpstan/rules/module-cycle-imports.neon
+#
+# Pairs with `trueModular.circularDependencies.includeDev` in module-boundary.neon:
+# that one tells you a cycle exists, this one tells you which line to open.
+services:
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyImportRule
+        arguments:
+            baseDir: %currentWorkingDirectory%
+        tags:
+            - phpstan.rules.rule
