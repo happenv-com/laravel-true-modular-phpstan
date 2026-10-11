@@ -4,3 +4,4 @@ composer.lock
 .phpstan.cache
 .DS_Store
 /docs/superpowers
+/auth.json
