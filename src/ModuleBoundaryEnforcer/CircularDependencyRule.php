@@ -26,6 +26,7 @@ final class CircularDependencyRule implements Rule
     public function __construct(
         string $baseDir,
         private readonly bool $includeDevDependencies = false,
+        private readonly ?ModuleManifestsResultCacheValueExtension $manifests = null,
     ) {
         $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
@@ -53,6 +54,10 @@ final class CircularDependencyRule implements Rule
         }
 
         $this->alreadyReported = true;
+
+        // The cycles come from the manifests, not from $collected: without this, PHPStan
+        // 2.3.4+ reuses the errors from its result cache while no PHP file changes.
+        $this->resolver->trackManifests($scope, $this->manifests);
 
         $cycles = $this->resolver->detectCircularDependencies($this->includeDevDependencies);
         if ($cycles === []) {
