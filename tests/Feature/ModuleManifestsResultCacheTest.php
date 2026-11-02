@@ -68,6 +68,16 @@ function runCollectedDataRule(ModuleManifestsResultCacheTestCase $test, Rule $ru
 }
 
 /**
+ * Reusing the errors of rules on CollectedDataNode, and the API to watch what they
+ * declare, arrived in PHPStan 2.3.4. On 2.3.0-2.3.3 such a rule's declaration is a
+ * no-op, and only the per-file tests below apply.
+ */
+function collectedDataRuleReuseIsMissing(): bool
+{
+    return ! method_exists(ValueDependencyCollector::class, 'startCollectedDataRule');
+}
+
+/**
  * @return array<string, array{string, string, string}>
  */
 function manifestsDependency(string $modulesPath): array
@@ -97,7 +107,7 @@ it('makes the reported cycles depend on the module manifests', function (): void
 
     expect($errors)->toHaveCount(1)
         ->and($values)->toBe(manifestsDependency(FixturePaths::devCircularBaseDir().'/app-modules'));
-});
+})->skip(collectedDataRuleReuseIsMissing(), 'Needs PHPStan 2.3.4+.');
 
 it('wires the cycle report to the module manifests in the shipped configuration', function (): void {
     $baseDir = self::getContainer()->getParameter('currentWorkingDirectory');
@@ -105,7 +115,7 @@ it('wires the cycle report to the module manifests in the shipped configuration'
     [, $values] = runCollectedDataRule($this, $this->configuredRule(CircularDependencyRule::class), "{$baseDir}/src/Anything.php");
 
     expect($values)->toBe(manifestsDependency("{$baseDir}/app-modules"));
-});
+})->skip(collectedDataRuleReuseIsMissing(), 'Needs PHPStan 2.3.4+.');
 
 it('makes the per-file boundary rules depend on the module manifests', function (Rule $rule, string $file, Node $node): void {
     $collector = $this->valueDependencyCollector();
@@ -140,13 +150,13 @@ it('makes the per-file boundary rules depend on the module manifests', function 
 it('declares nothing when the rule is wired without the extension', function (): void {
     // PHPStan throws on a value whose extension it does not know, so a rule registered
     // by hand, without the package's configuration, must stay silent instead.
-    [, $values] = runCollectedDataRule(
-        $this,
-        new CircularDependencyRule(FixturePaths::devCircularBaseDir(), includeDevDependencies: true),
-        FixturePaths::devCircularFile('a/src/Thing.php'),
-    );
+    $file = FixturePaths::saleFile('DisallowedUse.php');
+    $collector = $this->valueDependencyCollector();
+    $collector->startFile($file);
+    (new ModuleBoundaryRule(FixturePaths::moduleBaseDir()))
+        ->processNode(new Use_([new UseItem(new Name('Acme\Catalog\Product'))]), $this->scopeFor($file, insideWalk: true));
 
-    expect($values)->toBe([]);
+    expect($collector->finishFile()['values'])->toBe([]);
 });
 
 it('changes the manifests value when a require-dev edge closes a cycle', function (): void {
@@ -173,8 +183,9 @@ it('changes the manifests value when a module appears or goes', function (): voi
     file_put_contents("{$modulesPath}/c/composer.json", '{"name": "acme/c", "type": "true-module"}');
     expect(manifestsValue($modulesPath))->not->toBe($withEmptyDirectory);
 
+    $withModuleC = manifestsValue($modulesPath);
     unlink("{$modulesPath}/a/composer.json");
-    expect(manifestsValue($modulesPath))->not->toBe($withEmptyDirectory);
+    expect(manifestsValue($modulesPath))->not->toBe($withModuleC);
 });
 
 it('stores the modules directory relative to the project', function (): void {
