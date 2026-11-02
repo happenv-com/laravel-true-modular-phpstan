@@ -8,10 +8,10 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/happenv-com/laravel-true-modular-phpstan.svg?style=flat-square)](https://packagist.org/packages/happenv-com/laravel-true-modular-phpstan)
 [![Total Downloads](https://img.shields.io/packagist/dt/happenv-com/laravel-true-modular-phpstan.svg?style=flat-square)](https://packagist.org/packages/happenv-com/laravel-true-modular-phpstan)
-[![Tests](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/tests.yml?branch=0.x&style=flat-square&label=tests)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/tests.yml)
-[![PHPStan](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/phpstan.yml?branch=0.x&style=flat-square&label=phpstan)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/phpstan.yml)
-[![Zizmor](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/zizmor.yml?branch=0.x&style=flat-square&label=zizmor)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/zizmor.yml)
-[![Code Style](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/fix-code-style.yml?branch=0.x&style=flat-square&label=code%20style)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/fix-code-style.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/tests.yml?branch=1.x&style=flat-square&label=tests)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/tests.yml)
+[![PHPStan](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/phpstan.yml?branch=1.x&style=flat-square&label=phpstan)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/phpstan.yml)
+[![Zizmor](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/zizmor.yml?branch=1.x&style=flat-square&label=zizmor)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/zizmor.yml)
+[![Code Style](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/fix-code-style.yml?branch=1.x&style=flat-square&label=code%20style)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/fix-code-style.yml)
 
 PHPStan extensions for [laravel-true-modular](https://github.com/happenv-com/laravel-true-modular)
 modular monoliths. Ships two independent, **zero-config** extensions:
