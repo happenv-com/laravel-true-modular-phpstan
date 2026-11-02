@@ -136,6 +136,12 @@ Circular dependencies are reported once at the end of analysis:
 Circular dependency detected between modules: acme/sales → acme/crm → acme/sales. ...
 ```
 
+The module manifests are declared to PHPStan's result cache (PHPStan 2.3+), so editing
+a module's `composer.json` — even without touching `composer.lock` or any PHP file —
+re-runs these rules instead of replaying errors computed from the old dependency graph.
+This works when the rules come from the bundled `rules/*.neon` files; a rule registered
+by hand without its `manifests` argument still works, but is not re-run on such an edit.
+
 #### Error identifiers
 
 You can ignore findings by identifier in `phpstan.neon`:

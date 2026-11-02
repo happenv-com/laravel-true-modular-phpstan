@@ -33,6 +33,7 @@ final class ModuleBoundaryClassReferenceRule implements Rule
 
     public function __construct(
         string $baseDir,
+        private readonly ?ModuleManifestsResultCacheValueExtension $manifests = null,
     ) {
         $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
@@ -47,16 +48,20 @@ final class ModuleBoundaryClassReferenceRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
+        // Names first: this rule sees every node, and only those referencing a class
+        // depend on the manifests.
+        $classNames = $this->extractClassNames($node);
+        if ($classNames === []) {
+            return [];
+        }
+
+        $this->resolver->trackManifests($scope, $this->manifests);
+
         $currentFile = $scope->getFile();
         $sourceModule = $this->resolver->getModuleForFile($currentFile);
 
         // If the current file is not in a module, skip
         if ($sourceModule === null) {
-            return [];
-        }
-
-        $classNames = $this->extractClassNames($node);
-        if ($classNames === []) {
             return [];
         }
 

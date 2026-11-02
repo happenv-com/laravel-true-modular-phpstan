@@ -15,9 +15,20 @@
 # Pairs with `trueModular.circularDependencies.includeDev` in module-boundary.neon:
 # that one tells you a cycle exists, this one tells you which line to open.
 services:
+    # What the rule below answers from: the modules' composer.json files, declared to
+    # PHPStan's result cache so that editing one re-runs it. Named, so that including
+    # both this file and module-boundary.neon registers it once.
+    trueModular.moduleManifestsResultCacheValueExtension:
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleManifestsResultCacheValueExtension
+        arguments:
+            currentWorkingDirectory: %currentWorkingDirectory%
+        tags:
+            - phpstan.resultCacheValueExtension
+
     -
         class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyImportRule
         arguments:
             baseDir: %currentWorkingDirectory%
+            manifests: @trueModular.moduleManifestsResultCacheValueExtension
         tags:
             - phpstan.rules.rule

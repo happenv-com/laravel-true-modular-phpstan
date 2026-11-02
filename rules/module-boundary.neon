@@ -22,10 +22,21 @@ parametersSchema:
     ])
 
 services:
+    # What the rules below answer from: the modules' composer.json files, declared to
+    # PHPStan's result cache so that editing one re-runs them. Named, so that including
+    # both this file and module-cycle-imports.neon registers it once.
+    trueModular.moduleManifestsResultCacheValueExtension:
+        class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleManifestsResultCacheValueExtension
+        arguments:
+            currentWorkingDirectory: %currentWorkingDirectory%
+        tags:
+            - phpstan.resultCacheValueExtension
+
     -
         class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryRule
         arguments:
             baseDir: %currentWorkingDirectory%
+            manifests: @trueModular.moduleManifestsResultCacheValueExtension
         tags:
             - phpstan.rules.rule
 
@@ -33,6 +44,7 @@ services:
         class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\ModuleBoundaryClassReferenceRule
         arguments:
             baseDir: %currentWorkingDirectory%
+            manifests: @trueModular.moduleManifestsResultCacheValueExtension
         tags:
             - phpstan.rules.rule
 
@@ -45,6 +57,7 @@ services:
         class: Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer\CircularDependencyRule
         arguments:
             baseDir: %currentWorkingDirectory%
+            manifests: @trueModular.moduleManifestsResultCacheValueExtension
             includeDevDependencies: %trueModular.circularDependencies.includeDev%
         tags:
             - phpstan.rules.rule

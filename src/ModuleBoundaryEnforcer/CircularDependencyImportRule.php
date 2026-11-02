@@ -44,6 +44,7 @@ final readonly class CircularDependencyImportRule implements Rule
     public function __construct(
         string $baseDir,
         private bool $enabled = true,
+        private ?ModuleManifestsResultCacheValueExtension $manifests = null,
     ) {
         $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
@@ -61,6 +62,8 @@ final readonly class CircularDependencyImportRule implements Rule
         if (! $this->enabled || $node->type !== Use_::TYPE_NORMAL) {
             return [];
         }
+
+        $this->resolver->trackManifests($scope, $this->manifests);
 
         $sourceModule = $this->resolver->getModuleForFile($scope->getFile());
 

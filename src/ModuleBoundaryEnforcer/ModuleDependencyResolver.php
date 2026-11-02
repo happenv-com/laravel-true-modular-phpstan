@@ -7,6 +7,8 @@ namespace Happenv\LaravelTrueModular\Phpstan\ModuleBoundaryEnforcer;
 use Happenv\LaravelTrueModular\Application;
 use Happenv\LaravelTrueModular\Architecture\Module\AppModulesLocator;
 use Happenv\LaravelTrueModular\ModuleSystem\ModuleRegistry;
+use PHPStan\Analyser\DependencyTracker;
+use PHPStan\Analyser\Scope;
 use Throwable;
 
 /**
@@ -53,6 +55,25 @@ final class ModuleDependencyResolver
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Declare that what the calling rule reports for $scope depends on the module
+     * manifests, so PHPStan's result cache re-runs it when one of them changes.
+     *
+     * Every answer this resolver gives — which module a file or class belongs to, what
+     * a module may depend on, whether the graph has a cycle — comes from composer.json
+     * files the result cache cannot see. A rule calls this before asking.
+     *
+     * $manifests is the registered extension, null when the rule was wired without it:
+     * declaring a value whose extension PHPStan does not know makes PHPStan throw, so
+     * there is nothing to declare then.
+     */
+    public function trackManifests(Scope $scope, ?ModuleManifestsResultCacheValueExtension $manifests): void
+    {
+        if ($manifests instanceof ModuleManifestsResultCacheValueExtension && $scope instanceof DependencyTracker) {
+            $scope->trackValueDependency(ModuleManifestsResultCacheValueExtension::class, $this->modulesPath());
+        }
     }
 
     /**
@@ -273,7 +294,7 @@ final class ModuleDependencyResolver
         // (and potentially throwing) on every analysed node.
         $this->initialized = true;
 
-        $modulesPath = $this->baseDir.DIRECTORY_SEPARATOR.Application::getModulesDirectory();
+        $modulesPath = $this->modulesPath();
 
         if (! is_dir($modulesPath)) {
             return;
@@ -290,5 +311,10 @@ final class ModuleDependencyResolver
 
         $this->registry = $registry;
         $this->locator = new AppModulesLocator($registry, Application::getModulesVendor());
+    }
+
+    private function modulesPath(): string
+    {
+        return $this->baseDir.DIRECTORY_SEPARATOR.Application::getModulesDirectory();
     }
 }

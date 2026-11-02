@@ -23,6 +23,7 @@ final readonly class ModuleBoundaryRule implements Rule
 
     public function __construct(
         string $baseDir,
+        private ?ModuleManifestsResultCacheValueExtension $manifests = null,
     ) {
         $this->resolver = ModuleDependencyResolver::getInstance($baseDir);
     }
@@ -41,6 +42,8 @@ final readonly class ModuleBoundaryRule implements Rule
         if ($node->type !== Use_::TYPE_NORMAL) {
             return [];
         }
+
+        $this->resolver->trackManifests($scope, $this->manifests);
 
         $errors = [];
         $currentFile = $scope->getFile();
