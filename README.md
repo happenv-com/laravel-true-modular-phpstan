@@ -173,6 +173,10 @@ parameters:
 
 That's the whole configuration — point PHPStan at your modules and run it.
 
+## AI assistants (Laravel Boost)
+
+The package ships a [Laravel Boost](https://laravel.com/docs/boost) skill, `true-modular-phpstan-development`, in `resources/boost/skills/`. `php artisan boost:install` (or `boost:update`) offers it to your coding agent: what each `trueModular.*` finding means and how to fix it without moving the problem, the opt-in `require-dev` cycle checks, and what the relation resolver needs to see a model extension.
+
 ## Development
 
 ```bash
