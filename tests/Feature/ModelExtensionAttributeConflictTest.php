@@ -7,6 +7,9 @@ use Happenv\LaravelTrueModular\ModuleProvider\Module;
 use Happenv\LaravelTrueModular\ModuleSystem\ModuleManifestRepository;
 use Happenv\LaravelTrueModular\Phpstan\ModelExtensionAttributes\ModelExtensionAttributeMap;
 use Happenv\LaravelTrueModular\Phpstan\ModelExtensionAttributes\ModelExtensionAttributeProperties;
+use Happenv\LaravelTrueModular\Phpstan\Tests\Fixtures\ModelExtensions\Bags\BagOfUnknownShape;
+use Happenv\LaravelTrueModular\Phpstan\Tests\Fixtures\ModelExtensions\Bags\BagWithExtensionsFor;
+use Happenv\LaravelTrueModular\Phpstan\Tests\Fixtures\ModelExtensions\Bags\BagWithRegistryOnly;
 use Happenv\LaravelTrueModular\Phpstan\Tests\Fixtures\ModelExtensions\Models\Task;
 use Happenv\LaravelTrueModular\Phpstan\Tests\Fixtures\ModelExtensions\TaskBudgetExtension;
 use Happenv\LaravelTrueModular\Phpstan\Tests\Fixtures\ModelExtensions\TaskEstimateExtension;
@@ -20,6 +23,10 @@ use PHPStan\Type\VerbosityLevel;
  * are registered while providers initialise, in module dependency order, which need
  * not be the order the modules were declared in. PHPStan must type the attribute from
  * the accessor that really runs.
+ *
+ * The tests against the real bag go through `AttributeResolversBag::extensionsFor()`
+ * on laravel-true-modular versions that have it and through the bag's registry on
+ * older ones; the fixture bags below pin each path on any installed version.
  */
 function conflictingModules(): ModuleManifestRepository
 {
@@ -69,4 +76,21 @@ it('follows the runtime order rather than the declaration order', function (): v
 it('falls back to the first declared extension when no application has booted', function (): void {
     expect((new ModelExtensionAttributeMap(conflictingModules()))->find(Task::class, 'budget')?->extension)
         ->toBe(TaskEstimateExtension::class);
+});
+
+describe('reading the runtime order', function (): void {
+    it('uses extensionsFor() when the bag provides it', function (): void {
+        expect((new ModelExtensionAttributeMap(conflictingModules(), BagWithExtensionsFor::class))->find(Task::class, 'budget')?->extension)
+            ->toBe(TaskBudgetExtension::class);
+    });
+
+    it('reads the bag\'s registry when the bag has no extensionsFor()', function (): void {
+        expect((new ModelExtensionAttributeMap(conflictingModules(), BagWithRegistryOnly::class))->find(Task::class, 'budget')?->extension)
+            ->toBe(TaskBudgetExtension::class);
+    });
+
+    it('falls back to the declaration order when the bag offers neither', function (): void {
+        expect((new ModelExtensionAttributeMap(conflictingModules(), BagOfUnknownShape::class))->find(Task::class, 'budget')?->extension)
+            ->toBe(TaskEstimateExtension::class);
+    });
 });

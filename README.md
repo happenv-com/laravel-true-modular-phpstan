@@ -165,7 +165,9 @@ $task->elapsed_hours;     // PHPStan now sees: int<0, max> (the accessor's PHPDo
   attribute, it is typed from the one laravel-true-modular answers with at runtime: the
   extension registered first, i.e. in the order the module providers are initialised
   (dependency order). That order is read from the booted application's
-  `AttributeResolversBag`; without it, the first declared extension wins.
+  `AttributeResolversBag`: through its public `extensionsFor()` where the installed
+  laravel-true-modular has it, and from its registry on older versions. Without it, the
+  first declared extension wins.
 - **Relations are left alone.** Relation methods on a model extension are the Dynamic
   Relation Resolver's job; this resolver never claims them, so an extension that only
   adds relations contributes nothing here and the two never declare the same property.
