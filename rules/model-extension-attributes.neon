@@ -1,0 +1,20 @@
+# Types the `get<X>Attribute()` accessors a model extension adds to another module's
+# model, so `$model->x` is no longer an undefined property.
+#
+# Opt in by including this file — there is no flag, because including it IS the flag.
+# It is kept out of `extension.neon` on purpose: PHPStan asks property extensions
+# BEFORE it reads `@property` tags, so on a model that already documents the
+# attribute, this one takes over and types it from the accessor instead. That is
+# usually the better answer, but it can change the type a consumer's code is checked
+# against, and an upgrade should not do that to you.
+#
+#     includes:
+#         - vendor/happenv-com/laravel-true-modular-phpstan/rules/model-extension-attributes.neon
+#
+# Like the Dynamic Relation Resolver, it reads what the booted application
+# registered, so it needs the application to boot during analysis (Larastan).
+services:
+    -
+        class: Happenv\LaravelTrueModular\Phpstan\ModelExtensionAttributes\ModelExtensionAttributeProperties
+        tags:
+            - phpstan.broker.propertiesClassReflectionExtension

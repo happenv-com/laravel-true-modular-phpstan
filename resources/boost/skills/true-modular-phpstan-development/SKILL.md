@@ -8,7 +8,8 @@ description: >-
   trueModular.circularDependencyImport; when code in one module starts using another module's class;
   when editing a module's composer.json require / require-dev; when configuring phpstan.neon for
   app-modules (extension.neon, rules/module-cycle-imports.neon, trueModular.circularDependencies.includeDev);
-  or when PHPStan does not see a relation added with hasModelExtensions() or Model::resolveRelationUsing().
+  or when PHPStan does not see a relation or a get<X>Attribute() accessor added with hasModelExtensions()
+  or Model::resolveRelationUsing() (rules/model-extension-attributes.neon).
 ---
 
 # Laravel True Modular PHPStan
@@ -17,7 +18,8 @@ Two PHPStan extensions for a laravel-true-modular application. The **Module Boun
 the modules' `composer.json` files into rules: code in a module may use another module's classes only
 if that module is listed **directly** in its own `require`, and the `require` graph must stay acyclic.
 The **Dynamic Relation Resolver** types Eloquent relations registered at runtime (which is how model
-extensions add relations to another module's model). There is no configuration: modules, namespaces
+extensions add relations to another module's model); an opt-in **attribute resolver** does the same for
+their `get<X>Attribute()` accessors. There is no configuration: modules, namespaces
 and allowed edges come from the same `composer.json` files the framework uses to order providers.
 
 ## When to use this skill
@@ -26,7 +28,8 @@ and allowed edges come from the same `composer.json` files the framework uses to
 - A PHPStan run fails with a `trueModular.*` identifier.
 - Adding or removing a module dependency, or a test-only (`require-dev`) one.
 - Setting up `phpstan.neon` for the modules, or a separate configuration that analyses module tests.
-- `$model->someRelation` from a model extension is reported as an undefined property or method.
+- `$model->someRelation` or `$model->some_attribute` from a model extension is reported as an undefined
+  property or method.
 
 ## Setup
 
@@ -179,8 +182,29 @@ $order->customer;      // Customer|null for HasOne, BelongsTo, MorphOne, HasOneT
   analysis (Larastan) and the extension has to be declared on an enabled module.
 - The registered closure is called with a model built without its constructor. Keep relation methods
   side-effect free: return `$this->model->hasMany(...)` and nothing else.
-- Attribute accessors of a model extension (`getFormattedPriceAttribute()`) are not described by this
-  package.
+- Attribute accessors of a model extension (`getFormattedPriceAttribute()`) are covered by the opt-in
+  attribute resolver below, not by the relation resolver.
+
+## Model extension attributes (opt-in)
+
+Include `vendor/happenv-com/laravel-true-modular-phpstan/rules/model-extension-attributes.neon` to type
+the accessors a model extension adds: every public `get<X>Attribute()` declared on the extension class
+itself becomes the property `$model->x` (snake case), typed from the accessor's return type, PHPDoc
+included, and writable.
+
+```php
+$product->formatted_price; // string, from ProductBillingExtension::getFormattedPriceAttribute(): string
+```
+
+- It is not in `extension.neon` and extension-installer does not enable it. PHPStan asks it before
+  `@property` tags, so on a model that documents the same attribute the accessor's type wins.
+- It reads the extensions from the booted application's module registry, so it needs Larastan, like
+  the relation resolver.
+- Inherited, protected and private accessors are not contributed. Relation methods stay with the
+  relation resolver, so the two never claim the same property.
+- If an accessor-backed attribute is still undefined, check the file is included, the extension is
+  declared with `hasModelExtensions()` on an enabled module, and the accessor is public and declared on
+  the extension class itself.
 
 ## Ignoring findings
 
