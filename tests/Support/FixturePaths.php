@@ -70,6 +70,14 @@ final class FixturePaths
         return self::real(__DIR__.'/../Fixtures/devcircular/app-modules/'.$relative);
     }
 
+    /**
+     * Absolute path to a file inside the model extension fixture set.
+     */
+    public static function modelExtensionFile(string $relative): string
+    {
+        return self::real(__DIR__.'/../Fixtures/ModelExtensions/'.$relative);
+    }
+
     private static function real(string $path): string
     {
         $real = realpath($path);

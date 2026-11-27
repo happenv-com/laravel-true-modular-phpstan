@@ -50,7 +50,7 @@ final readonly class DynamicRelationPropertyReflection implements PropertyReflec
 
     public function isWritable(): bool
     {
-        // Możesz ustawić na false, jeśli nie chcesz pozwalać na zapis.
+        // Set this to true to allow assigning to the relation property.
         return false;
     }
 

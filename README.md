@@ -14,12 +14,14 @@
 [![Code Style](https://img.shields.io/github/actions/workflow/status/happenv-com/laravel-true-modular-phpstan/fix-code-style.yml?branch=1.x&style=flat-square&label=code%20style)](https://github.com/happenv-com/laravel-true-modular-phpstan/actions/workflows/fix-code-style.yml)
 
 PHPStan extensions for [laravel-true-modular](https://github.com/happenv-com/laravel-true-modular)
-modular monoliths. Ships two independent, **zero-config** extensions:
+modular monoliths. Ships three independent, **zero-config** extensions — the first two
+are on by default, the third is opt-in:
 
 | Extension | What it does |
 | --- | --- |
 | **Dynamic Relation Resolver** | Teaches PHPStan about Eloquent relations registered at runtime via `Model::resolveRelationUsing()` (e.g. relations one module adds to another module's model). Such relations are normally invisible to static analysis — this extension makes `$model->relation` and `$model->relation()` fully typed. |
 | **Module Boundary Enforcer** | Fails analysis when a module references a class from another module that is **not** declared in its `composer.json` `require`. Also detects circular dependencies between modules. |
+| **Model Extension Attribute Resolver** (opt-in) | Teaches PHPStan about the `get<X>Attribute()` accessors a module's model extension adds to another module's model, so `$model->x` is typed from the accessor instead of being an undefined property. |
 
 Requires PHP 8.3+, PHPStan 2.x and `laravel-true-modular` (Laravel 12/13). It reuses
 the framework's own module discovery, so it understands your modules out of the box —
@@ -33,7 +35,8 @@ composer require --dev happenv-com/laravel-true-modular-phpstan
 
 The package is a `phpstan-extension`. If you use
 [`phpstan/extension-installer`](https://github.com/phpstan/phpstan-extension-installer)
-(recommended), both extensions are registered automatically — nothing else to do:
+(recommended), the two default extensions are registered automatically — nothing else
+to do:
 
 ```bash
 composer require --dev phpstan/extension-installer
@@ -68,13 +71,17 @@ includes:
     - vendor/happenv-com/laravel-true-modular-phpstan/rules/module-boundary.neon
 ```
 
+The [Model Extension Attribute Resolver](#model-extension-attribute-resolver-opt-in) is
+never registered automatically; include `rules/model-extension-attributes.neon` to turn
+it on.
+
 > **Larastan recommended.** The Dynamic Relation Resolver reflects your Eloquent
 > models, so install [`larastan/larastan`](https://github.com/larastan/larastan)
 > for accurate results. With `extension-installer` it is wired up automatically.
 
 ## Zero configuration
 
-Neither extension needs any `parameters` in `phpstan.neon`. The Module Boundary
+None of the extensions needs any `parameters` in `phpstan.neon`. The Module Boundary
 Enforcer discovers modules through `laravel-true-modular`'s own `ModuleRegistry`,
 which means it automatically honours:
 
@@ -111,6 +118,61 @@ $user->orders(); // PHPStan now sees: Illuminate\Database\Eloquent\Relations\Has
 
 To-one relations (`hasOne`, `belongsTo`, `morphOne`, `hasOneThrough`) are typed as
 `Related|null`; to-many relations as `Collection<int, Related>`.
+
+### Model Extension Attribute Resolver (opt-in)
+
+A model extension adds accessors to another module's model, which laravel-true-modular
+serves at runtime through Eloquent's missing-attribute hook. PHPStan cannot see them, so
+`$task->remaining_hours` is an undefined property. Include the resolver to fix that:
+
+```neon
+includes:
+    - vendor/happenv-com/laravel-true-modular-phpstan/rules/model-extension-attributes.neon
+```
+
+```php
+// In the scheduling module's provider:
+public function configureModule(Module $module): void
+{
+    $module->hasModelExtensions(Task::class, TaskSchedulingExtension::class);
+}
+
+final class TaskSchedulingExtension extends ModelExtension
+{
+    public function getRemainingHoursAttribute(): int { /* ... */ }
+
+    /** @return int<0, max> */
+    public function getElapsedHoursAttribute(): int { /* ... */ }
+}
+```
+
+```php
+$task->remaining_hours;   // PHPStan now sees: int
+$task->elapsed_hours;     // PHPStan now sees: int<0, max> (the accessor's PHPDoc is honoured)
+```
+
+- **Source of truth.** The extensions come from laravel-true-modular's
+  `ModuleManifestRepository`, i.e. what the modules declared with `hasModelExtensions()`
+  while the application booted. Like the Dynamic Relation Resolver, it therefore needs
+  the application to boot during analysis (Larastan). Without a booted application the
+  registry is empty and the resolver claims nothing.
+- **What counts as an attribute.** Every public `get<X>Attribute()` method declared on
+  the extension class itself becomes the `snake_case` attribute `x`, typed from the
+  method's return type (PHPDoc included). Protected/private methods, methods inherited
+  from a parent class and public methods that are not accessors are ignored. Accessors
+  from several modules extending the same model are all collected.
+- **Relations are left alone.** Relation methods on a model extension are the Dynamic
+  Relation Resolver's job; this resolver never claims them, so an extension that only
+  adds relations contributes nothing here and the two never declare the same property.
+- **Writable.** Unlike a relation property, the attribute can be assigned
+  (`$task->remaining_hours = 3`), because Eloquent's attribute bag accepts it.
+
+**Why it is opt-in.** PHPStan consults property extensions *before* `@property` tags. On
+a model that already documents a contributed attribute (`@property string $total_due`),
+the resolver takes over and types it from the accessor instead (`float`). That is usually
+the more accurate answer, and a `@property-read` attribute becomes writable, but either
+can change what existing code is checked against — not only remove "undefined property"
+errors — so it is a decision to make, not something an upgrade does to you.
 
 ### Module Boundary Enforcer
 
@@ -175,7 +237,7 @@ That's the whole configuration — point PHPStan at your modules and run it.
 
 ## AI assistants (Laravel Boost)
 
-The package ships a [Laravel Boost](https://laravel.com/docs/boost) skill, `true-modular-phpstan-development`, in `resources/boost/skills/`. `php artisan boost:install` (or `boost:update`) offers it to your coding agent: what each `trueModular.*` finding means and how to fix it without moving the problem, the opt-in `require-dev` cycle checks, and what the relation resolver needs to see a model extension.
+The package ships a [Laravel Boost](https://laravel.com/docs/boost) skill, `true-modular-phpstan-development`, in `resources/boost/skills/`. `php artisan boost:install` (or `boost:update`) offers it to your coding agent: what each `trueModular.*` finding means and how to fix it without moving the problem, the opt-in `require-dev` cycle checks, what the relation resolver needs to see a model extension, and the opt-in attribute resolver for its accessors.
 
 ## Development
 
@@ -185,11 +247,15 @@ vendor/bin/pest        # test suite (Pest 4)
 vendor/bin/pint        # code style
 ```
 
-The test suite covers both extensions:
+The test suite covers every extension:
 
 - **Dynamic relations** — boots an in-memory Eloquent connection, registers
   relations via `Model::resolveRelationUsing()`, and asserts the resolver exposes
   them with the correct method/property types.
+- **Model extension attributes** — builds fixture modules whose model extensions add
+  accessors and relations to each other's models, and asserts the attribute map, the
+  property types (also through `assertType()` fixtures) and that the undefined-property
+  errors disappear only with the opt-in configuration.
 - **Module boundary** — uses PHPStan's `RuleTestCase` against fixture modules under
   `tests/Fixtures` to assert allowed/disallowed cross-module references and circular
   dependency detection.

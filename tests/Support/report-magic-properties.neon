@@ -1,0 +1,5 @@
+# Every Eloquent model has __get, which by default keeps PHPStan from reporting an
+# undefined property on it. Report it anyway, so a test can see the error that an
+# unresolved model extension attribute produces, and that it goes away once resolved.
+parameters:
+    reportMagicProperties: true
