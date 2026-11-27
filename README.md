@@ -161,6 +161,11 @@ $task->elapsed_hours;     // PHPStan now sees: int<0, max> (the accessor's PHPDo
   method's return type (PHPDoc included). Protected/private methods, methods inherited
   from a parent class and public methods that are not accessors are ignored. Accessors
   from several modules extending the same model are all collected.
+- **Same attribute from two modules.** If two extensions of one model provide the same
+  attribute, it is typed from the one laravel-true-modular answers with at runtime: the
+  extension registered first, i.e. in the order the module providers are initialised
+  (dependency order). That order is read from the booted application's
+  `AttributeResolversBag`; without it, the first declared extension wins.
 - **Relations are left alone.** Relation methods on a model extension are the Dynamic
   Relation Resolver's job; this resolver never claims them, so an extension that only
   adds relations contributes nothing here and the two never declare the same property.

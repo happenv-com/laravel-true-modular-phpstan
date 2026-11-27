@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Happenv\LaravelTrueModular\Phpstan\Tests\Support;
 
+use Happenv\LaravelTrueModular\ModelExtension\AttributeResolversBag;
 use Happenv\LaravelTrueModular\ModelExtension\DynamicRelations;
 use Happenv\LaravelTrueModular\ModuleProvider\Module;
 use Happenv\LaravelTrueModular\ModuleSystem\ModuleManifestRepository;
@@ -46,8 +47,10 @@ final class ModelExtensionFixtures
 
     /**
      * What booting the application does for the analysis: the module registry is
-     * bound in the container and every model extension's relations are registered
-     * through laravel-true-modular's own DynamicRelations.
+     * bound in the container, and every model extension is registered with
+     * laravel-true-modular's own DynamicRelations (relations) and AttributeResolversBag
+     * (accessors). The bag is filled directly rather than through AttributeResolver,
+     * which would also install a missing-attribute hook on every model in the process.
      */
     public static function boot(): void
     {
@@ -61,6 +64,7 @@ final class ModelExtensionFixtures
         foreach ($modules->all() as $module) {
             foreach ($module->modelExtensions as $model => $extension) {
                 DynamicRelations::register($model, $extension);
+                AttributeResolversBag::addExtension($model, $extension);
             }
         }
 
@@ -73,5 +77,6 @@ final class ModelExtensionFixtures
     public static function shutDown(): void
     {
         Container::setInstance(null);
+        AttributeResolversBag::flush();
     }
 }
