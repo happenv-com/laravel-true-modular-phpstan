@@ -26,8 +26,10 @@ use ReflectionProperty;
  * is the one laravel-true-modular's `AttributeResolversBag` asks first at runtime: the
  * extension registered first. That is the order the providers are INITIALISED in
  * (dependency order), not the order they registered their modules in, so it is read
- * from the bag the booted application filled. Without that order (nothing booted, or
- * a bag this code does not recognise) the modules' declaration order is used.
+ * from the bag the booted application filled: through `extensionsFor()` where
+ * laravel-true-modular provides it, and from the bag's registry on versions that do
+ * not. Without that order (nothing booted, or a bag this code does not recognise) the
+ * modules' declaration order is used.
  *
  * This class knows nothing about PHPStan: all the logic lives here precisely so it
  * can be tested without PHPStan's container.
@@ -37,7 +39,14 @@ final class ModelExtensionAttributeMap
     /** @var array<class-string, array<string, ModelExtensionAttribute>>|null */
     private ?array $map = null;
 
-    public function __construct(private readonly ModuleManifestRepository $modules) {}
+    /**
+     * @param  class-string  $resolversBag  the class whose resolution order to follow; only
+     *                                      tests pass anything but laravel-true-modular's bag
+     */
+    public function __construct(
+        private readonly ModuleManifestRepository $modules,
+        private readonly string $resolversBag = AttributeResolversBag::class,
+    ) {}
 
     /**
      * @param  class-string  $model
@@ -69,11 +78,10 @@ final class ModelExtensionAttributeMap
             }
         }
 
-        $runtimeOrder = $this->runtimeOrder();
         $map = [];
 
         foreach ($extensions as $model => $modelExtensions) {
-            foreach ($this->inRuntimeOrder($modelExtensions, $runtimeOrder[$model] ?? []) as $extension) {
+            foreach ($this->inRuntimeOrder($modelExtensions, $this->runtimeOrderOf($model)) as $extension) {
                 foreach ($this->accessorsOf($extension) as $attribute) {
                     // The first extension to provide an attribute answers for it, as at runtime.
                     $map[$model][$attribute->attribute] ??= $attribute;
@@ -102,19 +110,39 @@ final class ModelExtensionAttributeMap
         return $extensions;
     }
 
+    /** @var array<string, list<string>>|null */
+    private ?array $registryOrder = null;
+
     /**
-     * The extensions of each model in the order `AttributeResolversBag::resolve()` asks
-     * them, as the booted application registered them.
+     * The extensions of $model in the order `AttributeResolversBag::resolve()` asks them,
+     * as the booted application registered them.
      *
-     * The bag exposes no reader for that order, so it is read from its registry
-     * directly. Anything unexpected there yields no order rather than a wrong one.
+     * @return list<string>
+     */
+    private function runtimeOrderOf(string $model): array
+    {
+        $extensionsFor = [$this->resolversBag, 'extensionsFor'];
+
+        if (method_exists($this->resolversBag, 'extensionsFor') && is_callable($extensionsFor)) {
+            $order = $extensionsFor($model);
+
+            return is_array($order) ? array_values(array_filter($order, is_string(...))) : [];
+        }
+
+        return ($this->registryOrder ??= $this->registryOrder())[$model] ?? [];
+    }
+
+    /**
+     * The same order, for laravel-true-modular versions whose bag has no `extensionsFor()`:
+     * read from the bag's private registry. Anything unexpected there yields no order
+     * rather than a wrong one.
      *
      * @return array<string, list<string>>
      */
-    private function runtimeOrder(): array
+    private function registryOrder(): array
     {
         try {
-            $resolvers = (new ReflectionProperty(AttributeResolversBag::class, 'resolvers'))->getValue();
+            $resolvers = (new ReflectionProperty($this->resolversBag, 'resolvers'))->getValue();
         } catch (ReflectionException) {
             return [];
         }
